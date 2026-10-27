@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Xcode user data
+*.xcuserstate
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+**/xcdebugger/Breakpoints_v2.xcbkptlist
+
+# Swift Package Manager
+.swiftpm/
+.build/
+Package.resolved

@@ -1,0 +1,31 @@
+name: LazyCustomLayoutExample
+options:
+  bundleIdPrefix: com.exyte
+configs:
+  Debug: debug
+  Release: release
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+targets:
+  LazyCustomLayoutExample:
+    type: application
+    platform: iOS
+    deploymentTarget: "18.0"
+    sources:
+      - path: LazyCustomLayoutExample
+    info:
+      path: Generated/Info.plist
+      properties:
+        UILaunchScreen: {}
+        # Needed for the engine's FrameClock to actually reach 120Hz on ProMotion iPhones.
+        CADisableMinimumFrameDurationOnPhone: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.exyte.LazyCustomLayoutExample
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - package: LazyCustomLayout
+packages:
+  LazyCustomLayout:
+    path: ..
