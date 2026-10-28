@@ -1,3 +1,4 @@
+import QuartzCore
 import SwiftUI
 
 /// The result of walking a `StreamingLayout` outward from an anchor: which
@@ -34,6 +35,9 @@ func streamingLayoutWindow<Layout: StreamingLayout>(
     crossSizeCache: SizeCache<Int>,
     layout: Layout
 ) -> StreamingLayoutWindow {
+    let perfStart = CACurrentMediaTime()
+    defer { ScrollPerfLog.shared.recordWindowWalk(durationMs: (CACurrentMediaTime() - perfStart) * 1000) }
+
     guard itemCount > 0 else {
         return StreamingLayoutWindow(indices: [], frames: [:], proposals: [:], forwardSlack: 0, backwardSlack: 0)
     }
@@ -90,14 +94,14 @@ func streamingLayoutWindow<Layout: StreamingLayout>(
     // MARK: Forward
 
     var forwardCache = cache
-    var forwardSlack: Double?
+    var reachedForwardEnd = false
     var currentFrame = anchorPlacement.frame
     var index = anchor.id
     var loadedCount = 1
 
     while true {
         if index == itemCount - 1 {
-            forwardSlack = max(0, (axisEnd(currentFrame) - anchor.offset) - viewportLength)
+            reachedForwardEnd = true
             break
         }
         if axisEnd(currentFrame) - anchor.offset >= reach {
@@ -150,6 +154,15 @@ func streamingLayoutWindow<Layout: StreamingLayout>(
         indices.append(index)
         currentFrame = placement.frame
         loadedCount += 1
+    }
+
+    // Taken over every placed frame, not just the last one: in a multi-lane
+    // layout (masonry) the final item isn't necessarily the one reaching
+    // furthest, and the content must fit the longest lane.
+    var forwardSlack: Double?
+    if reachedForwardEnd {
+        let furthestEnd = frames.values.map(axisEnd).max() ?? axisEnd(anchorPlacement.frame)
+        forwardSlack = max(0, (furthestEnd - anchor.offset) - viewportLength)
     }
 
     return StreamingLayoutWindow(indices: indices, frames: frames, proposals: proposals, forwardSlack: forwardSlack, backwardSlack: backwardSlack)

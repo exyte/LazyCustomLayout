@@ -84,8 +84,23 @@ public protocol StreamingLayout {
     /// The item's frame, given `size` — its real response to `proposedSize`
     /// once actually measured, or an estimate while only window-planning.
     func place(size: CGSize, context: StreamingLayoutContext, cache: inout Cache) -> CGRect
+
+    /// The cross-axis length to lay out against when nothing proposes one —
+    /// used by `EagerStreamingLayout` (backing `.fitToContent` sizing) when
+    /// its own parent proposes no width (vertical axis) or height
+    /// (horizontal axis) of its own. `itemCrossLengths` is every item's own
+    /// ideal, `.unspecified`-proposed cross length, in index order.
+    /// Default: the widest item, correct for a single-column layout like
+    /// `StackLayout`.
+    func idealCrossLength(itemCrossLengths: [Double]) -> Double
 }
 
 extension StreamingLayout where Cache == Void {
     public func makeCache() {}
+}
+
+extension StreamingLayout {
+    public func idealCrossLength(itemCrossLengths: [Double]) -> Double {
+        itemCrossLengths.max() ?? 0
+    }
 }

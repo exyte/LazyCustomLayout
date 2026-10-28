@@ -1,7 +1,33 @@
 <a href="https://exyte.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/exyte/media/master/common/header-dark.png"><img src="https://raw.githubusercontent.com/exyte/media/master/common/header-light.png"></picture></a>
 
-<a href="https://exyte.com/"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/exyte/media/master/common/our-site-dark.png" width="80" height="16"><img src="https://raw.githubusercontent.com/exyte/media/master/common/our-site-light.png" width="80" height="16"></picture></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href="https://twitter.com/exyteHQ"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/exyte/media/master/common/twitter-dark.png" width="74" height="16"><img src="https://raw.githubusercontent.com/exyte/media/master/common/twitter-light.png" width="74" height="16">
-</picture></a> <a href="https://exyte.com/contacts"><picture><source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/exyte/media/master/common/get-in-touch-dark.png" width="128" height="24" align="right"><img src="https://raw.githubusercontent.com/exyte/media/master/common/get-in-touch-light.png" width="128" height="24" align="right"></picture></a>
+<table>
+    <thead>
+        <tr>
+            <th width="25%">Masonry</th>
+            <th width="25%">Heavy grid</th>
+            <th width="25%">Grid Spans</th>
+            <th width="25%">Flow</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td width="25%">
+                <img width="100%" src="https://github.com/user-attachments/assets/ae559457-b419-4784-a952-018efd398f60" />
+            </td>
+            <td width="25%">
+                <img width="100%" src="https://github.com/user-attachments/assets/821ca602-33e3-4f3e-b485-182311049932" />
+            </td>
+            <td width="25%">
+                <img width="100%" src="https://github.com/user-attachments/assets/44f0a10b-7892-4714-a9d3-db0959b56a2d" />
+            </td>
+            <td width="25%">
+                <img width="100%" src="https://github.com/user-attachments/assets/4a66e176-182b-4a5d-bf46-a97f93fd2361" />
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<img align="right" width="160" alt="Demo" src="https://github.com/user-attachments/assets/6846759e-19da-489f-a02d-53a87063eb06" />
 
 <p><h1 align="left">Lazy Custom Layout</h1></p>
 
@@ -10,6 +36,7 @@
 ![](https://img.shields.io/github/v/tag/exyte/LazyCustomLayout?label=Version)
 [![SPM](https://img.shields.io/badge/SPM-Compatible-brightgreen.svg)](https://swift.org/package-manager/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](https://opensource.org/licenses/MIT)
+
 
 # Usage
 
@@ -40,6 +67,19 @@ LazyStack(0..<2000, spacing: 1, estimatedItemLength: 60, maxLoadedItems: 30) { i
 ```
 
 `maxLoadedItems` caps how many rows are ever instantiated at once, regardless of buffer distance — useful for heavy rows.
+
+# Sizing
+
+Every `LazySmth` view (and `LazyAnchoredScroll` directly) sizes itself along its scroll axis via `.lazyLayoutSizing(_:)`:
+
+```swift
+LazyFlow(tags, spacing: 6, lineSpacing: 6, estimatedItemLength: 60) { tag in Chip(tag) }
+    .lazyLayoutSizing(.fitToContent)
+```
+
+- **`.scroll`** (default) — hugs its content up to the space it's offered, then scrolls once content overflows. Grows to the full content length if the parent proposes no length on this axis at all.
+- **`.fitToContent`** — eager and non-scrolling: every item is measured and placed in one pass, and the view hugs the full result. Only reach for this with content genuinely small enough to render in full, e.g. a handful of tags in a card — not a feed.
+- **`.scrollFillingSpace`** — always fills whatever space it's offered, scrollable or not. The behavior every lazy layout had before `.lazyLayoutSizing(_:)` existed; reach for this for a full-screen feed.
 
 # The `StreamingLayout` protocol
 

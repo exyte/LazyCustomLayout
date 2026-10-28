@@ -14,6 +14,11 @@
 		1EA5D0FB30910F4438530683 /* TableExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BAE13C1FCE7933A79DB4571 /* TableExample.swift */; };
 		1F16000189D25C84338BACE9 /* CalculatorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 850F03CBC7F866B730E5309E /* CalculatorModel.swift */; };
 		409C697546A5BADBF67B6B53 /* FlowExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406F0B373C58ECC2680CADBB /* FlowExample.swift */; };
+		5B44E6843091E7FA00D7D5C1 /* HeavyGridCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B44E6833091E7FA00D7D5C1 /* HeavyGridCell.swift */; };
+		5B44E6863091EC8200D7D5C1 /* CellAppearPerfLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B44E6853091EC8200D7D5C1 /* CellAppearPerfLog.swift */; };
+		5B44E68830930C9500D7D5C1 /* HeavyGridExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B44E68730930C9500D7D5C1 /* HeavyGridExample.swift */; };
+		5B44E68C309332EF00D7D5C1 /* CollageExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B44E68B309332EF00D7D5C1 /* CollageExample.swift */; };
+		5B44E6A5309452DA00D7D5C1 /* Assets.xcassets in Sources */ = {isa = PBXBuildFile; fileRef = 5B44E6A4309451AA00D7D5C1 /* Assets.xcassets */; };
 		5CAA04B2DE142CC25609EF96 /* TextColumn.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AC2E49A02D2DA6A852C3C1E /* TextColumn.swift */; };
 		6672DA1628125F97438D9D77 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 227D7358AB538E36C68EB57E /* ContentView.swift */; };
 		6CF3CA04506EA2C9989F75A2 /* MasonryExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2FEFC9CEC49763677543A36 /* MasonryExample.swift */; };
@@ -32,7 +37,12 @@
 		40D10B349EC07CCBCB0912A6 /* HorizontalScrollExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalScrollExample.swift; sourceTree = "<group>"; };
 		41A3305DA26974E2C4758CE2 /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
 		49AB10667686A31962053C3C /* CalculatorButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorButton.swift; sourceTree = "<group>"; };
-		5C3576BE66DC2AA1599D8151 /* LazyCustomLayoutExample.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LazyCustomLayoutExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5B44E6833091E7FA00D7D5C1 /* HeavyGridCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeavyGridCell.swift; sourceTree = "<group>"; };
+		5B44E6853091EC8200D7D5C1 /* CellAppearPerfLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellAppearPerfLog.swift; sourceTree = "<group>"; };
+		5B44E68730930C9500D7D5C1 /* HeavyGridExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeavyGridExample.swift; sourceTree = "<group>"; };
+		5B44E68B309332EF00D7D5C1 /* CollageExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CollageExample.swift; sourceTree = "<group>"; };
+		5B44E6A4309451AA00D7D5C1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		5C3576BE66DC2AA1599D8151 /* LazyCustomLayoutExample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LazyCustomLayoutExample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		650AD301484EF0382351B5A7 /* CompareWithScrollViewExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompareWithScrollViewExample.swift; sourceTree = "<group>"; };
 		66EA2243BF7E706AEB8CD0D1 /* LazyCustomLayoutExampleApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LazyCustomLayoutExampleApp.swift; sourceTree = "<group>"; };
 		7BAE13C1FCE7933A79DB4571 /* TableExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TableExample.swift; sourceTree = "<group>"; };
@@ -78,6 +88,8 @@
 				406F0B373C58ECC2680CADBB /* FlowExample.swift */,
 				B8BA862B41E31B52AF4CDA84 /* GridExample.swift */,
 				876F243D9DDED6D4A00DAC4D /* CalculatorExample.swift */,
+				5B44E68730930C9500D7D5C1 /* HeavyGridExample.swift */,
+				5B44E68B309332EF00D7D5C1 /* CollageExample.swift */,
 			);
 			path = Screens;
 			sourceTree = "<group>";
@@ -94,10 +106,11 @@
 		A002B2BE37346BDC7DA70ADB /* LazyCustomLayoutExample */ = {
 			isa = PBXGroup;
 			children = (
-				227D7358AB538E36C68EB57E /* ContentView.swift */,
-				66EA2243BF7E706AEB8CD0D1 /* LazyCustomLayoutExampleApp.swift */,
 				226460D2089D8A12821AE4D9 /* Screens */,
 				A181E0A6907365DD0598C3E5 /* Shared */,
+				227D7358AB538E36C68EB57E /* ContentView.swift */,
+				66EA2243BF7E706AEB8CD0D1 /* LazyCustomLayoutExampleApp.swift */,
+				5B44E6A4309451AA00D7D5C1 /* Assets.xcassets */,
 			);
 			path = LazyCustomLayoutExample;
 			sourceTree = "<group>";
@@ -111,6 +124,8 @@
 				41A3305DA26974E2C4758CE2 /* Card.swift */,
 				CF6F9393C71800AC245E7CC2 /* LoremText.swift */,
 				9AC2E49A02D2DA6A852C3C1E /* TextColumn.swift */,
+				5B44E6833091E7FA00D7D5C1 /* HeavyGridCell.swift */,
+				5B44E6853091EC8200D7D5C1 /* CellAppearPerfLog.swift */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -152,6 +167,9 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
+				KnownAssetTags = (
+					New,
+				);
 				LastUpgradeCheck = 1430;
 			};
 			buildConfigurationList = E7511845C3C0205CF48DDA23 /* Build configuration list for PBXProject "LazyCustomLayoutExample" */;
@@ -180,7 +198,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5B44E6A5309452DA00D7D5C1 /* Assets.xcassets in Sources */,
 				E0A77CE1A7DCA06830693D5F /* CalculatorButton.swift in Sources */,
+				5B44E68830930C9500D7D5C1 /* HeavyGridExample.swift in Sources */,
 				73993E520190BAC05A256B62 /* CalculatorExample.swift in Sources */,
 				0AE5F75A4C0CA095B9E62A79 /* CalculatorMode.swift in Sources */,
 				1F16000189D25C84338BACE9 /* CalculatorModel.swift in Sources */,
@@ -188,7 +208,10 @@
 				E8D61240053F5B4D107F985F /* CompareWithScrollViewExample.swift in Sources */,
 				6672DA1628125F97438D9D77 /* ContentView.swift in Sources */,
 				409C697546A5BADBF67B6B53 /* FlowExample.swift in Sources */,
+				5B44E6863091EC8200D7D5C1 /* CellAppearPerfLog.swift in Sources */,
+				5B44E68C309332EF00D7D5C1 /* CollageExample.swift in Sources */,
 				E8897FB27AD0011DED99D74C /* GridExample.swift in Sources */,
+				5B44E6843091E7FA00D7D5C1 /* HeavyGridCell.swift in Sources */,
 				1181D26A226D127C97A58F06 /* HorizontalScrollExample.swift in Sources */,
 				088277BAD8E05FB6D3F0406D /* LazyCustomLayoutExampleApp.swift in Sources */,
 				151B314DD3322DB585465E41 /* LoremText.swift in Sources */,
@@ -262,6 +285,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = FZXCM5CJ7P;
 				INFOPLIST_FILE = Generated/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -341,6 +365,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
+				DEVELOPMENT_TEAM = FZXCM5CJ7P;
 				INFOPLIST_FILE = Generated/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = (

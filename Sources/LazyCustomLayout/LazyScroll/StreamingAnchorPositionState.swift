@@ -71,6 +71,9 @@ final class StreamingAnchorPositionState<Layout: StreamingLayout> {
     private let bufferLength: Double?
     private let maxLoadedItems: Int?
 
+    private var cachedWindowKey: WindowCacheKey?
+    private var cachedWindow: StreamingLayoutWindow?
+
     init(
         axis: ScrollAxis,
         itemCount: Int,
@@ -110,7 +113,7 @@ final class StreamingAnchorPositionState<Layout: StreamingLayout> {
     /// geometry `applyDelta` uses, so a real delta and a slack query always
     /// agree on where the true edge is.
     func slack(direction: ScrollEngine.Direction) -> Double? {
-        let window = windowAroundAnchor(anchor)
+        let window = windowAroundAnchor()
 
         switch direction {
         case .forward: return window.forwardSlack
@@ -134,7 +137,7 @@ final class StreamingAnchorPositionState<Layout: StreamingLayout> {
         // it first and report any excess as `.dataEnd`, before the resolver
         // ever sees it.
         let previousAnchor = anchor
-        let window = windowAroundAnchor(previousAnchor)
+        let window = windowAroundAnchor()
 
         let boundedDelta: Double
         let overshoot: Double
@@ -171,8 +174,35 @@ final class StreamingAnchorPositionState<Layout: StreamingLayout> {
 
     // MARK: Window-based resolution
 
-    private func windowAroundAnchor(_ anchor: ScrollAnchor<Int>) -> StreamingLayoutWindow {
-        streamingLayoutWindow(
+    private func windowAroundAnchor() -> StreamingLayoutWindow {
+        window(itemCount: itemCount, viewportSize: viewportSize)
+    }
+
+    /// Shared by `slack`, `applyDelta`, and `LazyAnchoredScroll.body` — all
+    /// three used to each walk the layout fresh on every call, even though
+    /// most of the time nothing about the anchor or what's measured had
+    /// changed since the last one (3 walks per frame during a fling, each
+    /// as expensive as the last). Cached by every input the walk actually
+    /// depends on, so repeating the same query is O(1). `itemCount` and
+    /// `viewportSize` come in as parameters rather than reading `self`'s own
+    /// copies because `LazyAnchoredScroll.body` tracks `data.count` and
+    /// `GeometryReader`'s `proxy.size` live, while this type's own copies
+    /// are only as fresh as its last `viewportSize` write.
+    func window(itemCount: Int, viewportSize: CGSize) -> StreamingLayoutWindow {
+        let key = WindowCacheKey(
+            anchorID: anchor.id,
+            anchorOffset: anchor.offset,
+            itemCount: itemCount,
+            viewportSize: viewportSize,
+            sizeCacheVersion: sizeCache.version,
+            crossSizeCacheVersion: crossSizeCache.version
+        )
+
+        if let cachedWindow, cachedWindowKey == key {
+            return cachedWindow
+        }
+
+        let window = streamingLayoutWindow(
             anchor: anchor,
             itemCount: itemCount,
             axis: axis,
@@ -184,6 +214,19 @@ final class StreamingAnchorPositionState<Layout: StreamingLayout> {
             crossSizeCache: crossSizeCache,
             layout: layout
         )
+
+        cachedWindowKey = key
+        cachedWindow = window
+        return window
+    }
+
+    private struct WindowCacheKey: Equatable {
+        var anchorID: Int
+        var anchorOffset: Double
+        var itemCount: Int
+        var viewportSize: CGSize
+        var sizeCacheVersion: Int
+        var crossSizeCacheVersion: Int
     }
 
     /// Which item `window` (walked relative to some previous anchor) truly

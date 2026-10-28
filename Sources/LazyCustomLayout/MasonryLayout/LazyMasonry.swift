@@ -3,6 +3,9 @@ import SwiftUI
 /// `LazyAnchoredScroll` + `MasonryLayout`, one line: a Pinterest-style
 /// masonry grid of `lanes` equal-width columns, each item going into
 /// whichever lane is currently shortest.
+///
+/// Sizes itself along the scroll axis per `.lazyLayoutSizing(_:)` — hugs
+/// content up to the offered space and scrolls beyond it by default.
 public struct LazyMasonry<Data: RandomAccessCollection, Content: View>: View where Data.Index == Int {
     var data: Data
     var axis: ScrollAxis

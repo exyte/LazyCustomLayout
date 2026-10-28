@@ -3,6 +3,12 @@ import SwiftUI
 /// `LazyAnchoredScroll` + `FlowLayout`, one line: variable-width items
 /// wrapping left-to-right (or top-to-bottom on a horizontal axis), like a
 /// tag cloud.
+///
+/// Sizes itself along the scroll axis per `.lazyLayoutSizing(_:)` — hugs
+/// content up to the offered space and scrolls beyond it by default. A
+/// handful of tags inside a card, say, is small enough to prefer
+/// `.fitToContent` instead: eager, and never competes with an ancestor
+/// scroll view for drag gestures.
 public struct LazyFlow<Data: RandomAccessCollection, Content: View>: View where Data.Index == Int {
     var data: Data
     var axis: ScrollAxis

@@ -2,6 +2,9 @@ import SwiftUI
 
 /// `LazyAnchoredScroll` + `StackLayout`, one line: items placed one after
 /// another along the scroll axis, each sized to itself — a lazy table/list.
+///
+/// Sizes itself along the scroll axis per `.lazyLayoutSizing(_:)` — hugs
+/// content up to the offered space and scrolls beyond it by default.
 public struct LazyStack<Data: RandomAccessCollection, Content: View>: View where Data.Index == Int {
     var data: Data
     var axis: ScrollAxis

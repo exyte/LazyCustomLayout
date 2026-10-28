@@ -12,11 +12,20 @@ extension View {
     /// background `GeometryReader` — used where both dimensions matter, e.g.
     /// feeding a `StreamingLayout`'s `place(size:context:cache:)`.
     public func measuringSize(_ onChange: @escaping (CGSize) -> Void) -> some View {
+        measuringSize(key: 0, onChange)
+    }
+
+    /// Also re-reports when `key` changes, even if the size itself stays
+    /// the same — for a reused view that gets rebound to a different item
+    /// without ever disappearing, which would otherwise never report the
+    /// new item's (identical) size.
+    func measuringSize<Key: Equatable>(key: Key, _ onChange: @escaping (CGSize) -> Void) -> some View {
         background {
             GeometryReader { proxy in
                 Color.clear
                     .onAppear { onChange(proxy.size) }
                     .onChange(of: proxy.size) { _, newValue in onChange(newValue) }
+                    .onChange(of: key) { onChange(proxy.size) }
             }
         }
     }

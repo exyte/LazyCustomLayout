@@ -14,11 +14,23 @@ public final class SizeCache<ID: Hashable> {
     private var sizesByID: [ID: Double] = [:]
     private var sum: Double = 0
 
+    /// Bumped only when a stored value actually changes. `measuringSize`
+    /// reports a size on every `onAppear`/`onChange`, including ones where
+    /// the value hasn't moved — without the dedupe below, that wrote (and
+    /// `@Observable`-invalidated) the cache on every one of those too,
+    /// triggering an extra layout pass each time. Also lets a window-walk
+    /// cache (`StreamingAnchorPositionState.window(itemCount:viewportSize:)`)
+    /// tell "nothing measured changed" apart from "something did" without
+    /// diffing the whole dictionary.
+    private(set) var version = 0
+
     public init() {}
 
     public subscript(id: ID) -> Double? {
         get { sizesByID[id] }
         set {
+            guard sizesByID[id] != newValue else { return }
+
             if let oldValue = sizesByID[id] {
                 sum -= oldValue
             }
@@ -26,6 +38,7 @@ public final class SizeCache<ID: Hashable> {
                 sum += newValue
             }
             sizesByID[id] = newValue
+            version += 1
         }
     }
 

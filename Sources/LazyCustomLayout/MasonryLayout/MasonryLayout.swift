@@ -67,6 +67,16 @@ public struct MasonryLayout: StreamingLayout {
         case .horizontal: return CGRect(x: origin, y: crossOrigin, width: size.width, height: laneLength)
         }
     }
+
+    /// `lanes` copies of the widest item — an approximation (real lanes
+    /// split *available* space evenly regardless of content), but a
+    /// reasonable "natural" width for content with no cross-axis
+    /// constraint of its own.
+    public func idealCrossLength(itemCrossLengths: [Double]) -> Double {
+        let widestItem = itemCrossLengths.max() ?? 0
+
+        return widestItem * Double(lanes) + spacing * Double(lanes - 1)
+    }
 }
 
 /// Every item's lane, permanently, plus a self-correcting origin recomputed
@@ -83,11 +93,32 @@ private final class MasonryPositions {
     /// is simpler and has the same "self-corrects next time it's placed"
     /// behavior, just one call later for items outside the current window.
     private var lastKnownLength: [Int: Double] = [:]
+    /// `laneIndices[lane][assignedPosition[index]] == index` — kept in sync
+    /// on every insert so an already-placed item's position is a lookup,
+    /// not an `Array.firstIndex` scan.
+    private var assignedPosition: [Int: Int] = [:]
+    /// `laneCachedOrigins[lane][position]` is the origin of
+    /// `laneIndices[lane][position]` — truncated from whichever position's
+    /// length changed, or was shifted by an insert, onward. Mirrors
+    /// `GridRowLengths`' cache for the same reason: re-summing every
+    /// earlier same-lane item on every call made every walk slower the
+    /// deeper into a long list it reached.
+    private var laneCachedOrigins: [[Double]]
+    /// Running total length of each lane, kept in sync the same way, so
+    /// picking the shortest lane for a new item is O(1) too.
+    private var laneRunningTotal: [Double]
+
+    /// Items whose length has been seen unchanged across two placements —
+    /// i.e. measured for real, not an estimate. Only unsettled items may
+    /// still change lane, since their lane was picked from guessed sizes.
+    private var settledIndices: Set<Int> = []
 
     private(set) var currentAnchorOrigin: Double = 0
 
     init(lanes: Int) {
         laneIndices = Array(repeating: [], count: lanes)
+        laneCachedOrigins = Array(repeating: [], count: lanes)
+        laneRunningTotal = Array(repeating: 0, count: lanes)
     }
 
     func position(
@@ -97,22 +128,32 @@ private final class MasonryPositions {
         mainLength: Double,
         spacing: Double
     ) -> (lane: Int, origin: Double) {
+        let previousLength = lastKnownLength[index]
         lastKnownLength[index] = mainLength
+
+        if previousLength == mainLength {
+            settledIndices.insert(index)
+        }
 
         let lane: Int
         if let existing = assignedLane[index] {
             lane = existing
-        } else {
-            lane = (0..<lanes).min { laneTotal($0, spacing: spacing) < laneTotal($1, spacing: spacing) } ?? 0
-            assignedLane[index] = lane
 
-            let insertionPoint = laneIndices[lane].firstIndex { $0 > index } ?? laneIndices[lane].count
-            laneIndices[lane].insert(index, at: insertionPoint)
+            if let previousLength, previousLength != mainLength {
+                laneRunningTotal[lane] += mainLength - previousLength
+
+                if let position = assignedPosition[index] {
+                    invalidateOrigins(lane: lane, fromPosition: position + 1)
+                }
+
+                reassignUnsettled(after: index, lanes: lanes, spacing: spacing)
+            }
+        } else {
+            lane = insert(index, lanes: lanes, mainLength: mainLength, spacing: spacing)
         }
 
-        let origin = laneIndices[lane]
-            .prefix { $0 < index }
-            .reduce(0.0) { $0 + (lastKnownLength[$1] ?? 0) + spacing }
+        let position = assignedPosition[index] ?? 0
+        let origin = cachedOrigin(lane: lane, position: position, spacing: spacing)
 
         if isAnchor {
             currentAnchorOrigin = origin
@@ -121,7 +162,73 @@ private final class MasonryPositions {
         return (lane, origin)
     }
 
-    private func laneTotal(_ lane: Int, spacing: Double) -> Double {
-        laneIndices[lane].reduce(0.0) { $0 + (lastKnownLength[$1] ?? 0) + spacing }
+    private func insert(_ index: Int, lanes: Int, mainLength: Double, spacing: Double) -> Int {
+        let lane = (0..<lanes).min { laneRunningTotal[$0] < laneRunningTotal[$1] } ?? 0
+        assignedLane[index] = lane
+        laneRunningTotal[lane] += mainLength + spacing
+
+        let insertionPoint = laneIndices[lane].firstIndex { $0 > index } ?? laneIndices[lane].count
+        laneIndices[lane].insert(index, at: insertionPoint)
+        shiftPositions(lane: lane, from: insertionPoint)
+        invalidateOrigins(lane: lane, fromPosition: insertionPoint)
+
+        return lane
+    }
+
+    private func remove(_ index: Int, spacing: Double) {
+        guard let lane = assignedLane[index], let position = assignedPosition[index] else { return }
+
+        laneRunningTotal[lane] -= (lastKnownLength[index] ?? 0) + spacing
+        laneIndices[lane].remove(at: position)
+        assignedLane[index] = nil
+        assignedPosition[index] = nil
+        shiftPositions(lane: lane, from: position)
+        invalidateOrigins(lane: lane, fromPosition: position)
+    }
+
+    /// A later item's lane was chosen from the lane totals at that moment,
+    /// which included estimates for earlier items not measured yet. Once an
+    /// earlier length changes, re-choose for every later item that hasn't
+    /// been measured itself, so it doesn't stay stuck in a lane that only
+    /// looked shortest because of a wrong guess.
+    private func reassignUnsettled(after index: Int, lanes: Int, spacing: Double) {
+        let candidates = assignedLane.keys.filter { $0 > index && !settledIndices.contains($0) }.sorted()
+        guard !candidates.isEmpty else { return }
+
+        for candidate in candidates {
+            remove(candidate, spacing: spacing)
+        }
+
+        for candidate in candidates {
+            insert(candidate, lanes: lanes, mainLength: lastKnownLength[candidate] ?? 0, spacing: spacing)
+        }
+    }
+
+    private func cachedOrigin(lane: Int, position: Int, spacing: Double) -> Double {
+        while laneCachedOrigins[lane].count <= position {
+            let i = laneCachedOrigins[lane].count
+            let origin = i == 0
+                ? 0
+                : laneCachedOrigins[lane][i - 1] + (lastKnownLength[laneIndices[lane][i - 1]] ?? 0) + spacing
+            laneCachedOrigins[lane].append(origin)
+        }
+
+        return laneCachedOrigins[lane][position]
+    }
+
+    /// `laneCachedOrigins[lane][p]` depends only on positions `0..<p`, so a
+    /// changed position's own cached origin is still valid — only positions
+    /// after it need dropping. An insert shifts everything from its own
+    /// position onward, so that case invalidates starting there instead.
+    private func invalidateOrigins(lane: Int, fromPosition position: Int) {
+        guard position < laneCachedOrigins[lane].count else { return }
+
+        laneCachedOrigins[lane].removeSubrange(position...)
+    }
+
+    private func shiftPositions(lane: Int, from insertionPoint: Int) {
+        for position in insertionPoint..<laneIndices[lane].count {
+            assignedPosition[laneIndices[lane][position]] = position
+        }
     }
 }

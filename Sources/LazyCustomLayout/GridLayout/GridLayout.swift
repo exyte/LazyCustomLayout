@@ -89,6 +89,26 @@ public struct GridLayout: StreamingLayout {
         case .horizontal: return CGRect(x: mainOrigin, y: crossOrigin, width: size.width, height: size.height)
         }
     }
+
+    /// Resolves every track against the widest item instead of a real
+    /// proposed length: a `.px` track keeps its fixed length, an `.fr`
+    /// track gets that many multiples of the widest item — an
+    /// approximation (real `.fr` sizing splits *leftover* space, which
+    /// doesn't exist yet with nothing proposed), but a reasonable "natural"
+    /// width for content with no cross-axis constraint of its own.
+    public func idealCrossLength(itemCrossLengths: [Double]) -> Double {
+        guard !tracks.isEmpty else { return 0 }
+
+        let widestItem = itemCrossLengths.max() ?? 0
+        let trackLengths = tracks.map { track -> Double in
+            switch track {
+            case .px(let length): length
+            case .fr(let weight): weight * widestItem
+            }
+        }
+
+        return trackLengths.reduce(0, +) + spacing * Double(tracks.count - 1)
+    }
 }
 
 /// Every row's own main-axis length, mirroring `FlowPositions`' line
@@ -100,16 +120,29 @@ private final class GridRowLengths {
     private var assignedRow: [Int: Int] = [:]
     private var lastKnownMainLength: [Int: Double] = [:]
 
+    /// Running origin of each row already resolved, plus the fallback it
+    /// was resolved with — truncated only from the row whose length just
+    /// changed onward, so `origin(ofRow:)` stays O(1) amortized instead of
+    /// re-summing from row 0 on every call. That re-sum used to make every
+    /// `StreamingLayoutWalker` pass slower the deeper into a long list it
+    /// reached, since it ran once per placed item, every walk.
+    private var cachedOrigins: [Double] = [0]
+    private var cachedFallback: Double?
+
     private(set) var currentAnchorOrigin: Double = 0
 
     func recordMainLength(_ length: Double, forIndex index: Int, row: Int, isSingleRow: Bool) {
         guard isSingleRow else { return }
 
+        let previousLength = lastKnownMainLength[index]
         lastKnownMainLength[index] = length
 
         if assignedRow[index] == nil {
             assignedRow[index] = row
             rowMembers[row, default: []].append(index)
+            invalidateOrigins(from: row)
+        } else if previousLength != length {
+            invalidateOrigins(from: row)
         }
     }
 
@@ -126,10 +159,28 @@ private final class GridRowLengths {
     func origin(ofRow row: Int, lineSpacing: Double, fallback: Double) -> Double {
         guard row > 0 else { return 0 }
 
-        return (0..<row).reduce(0.0) { $0 + length(ofRow: $1, fallback: fallback) + lineSpacing }
+        if cachedFallback != fallback {
+            cachedOrigins = [0]
+            cachedFallback = fallback
+        }
+
+        while cachedOrigins.count <= row {
+            let lastRow = cachedOrigins.count - 1
+            cachedOrigins.append(cachedOrigins[lastRow] + length(ofRow: lastRow, fallback: fallback) + lineSpacing)
+        }
+
+        return cachedOrigins[row]
     }
 
     func spannedLength(firstRow: Int, span: Int, lineSpacing: Double, fallback: Double) -> Double {
         (firstRow..<(firstRow + span)).reduce(0.0) { $0 + length(ofRow: $1, fallback: fallback) } + lineSpacing * Double(span - 1)
+    }
+
+    /// `cachedOrigins[r]` depends only on rows `0..<r`, so a changed row's
+    /// own cached origin is still valid — only rows after it need dropping.
+    private func invalidateOrigins(from row: Int) {
+        guard row + 1 < cachedOrigins.count else { return }
+
+        cachedOrigins.removeSubrange((row + 1)...)
     }
 }

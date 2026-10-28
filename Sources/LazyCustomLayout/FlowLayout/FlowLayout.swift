@@ -87,6 +87,14 @@ public struct FlowLayout: StreamingLayout {
         case .horizontal: return CGRect(x: mainOrigin, y: crossOrigin, width: size.width, height: size.height)
         }
     }
+
+    /// Everything on one line — the only sensible "natural" width for a
+    /// flow with nothing constraining its cross axis.
+    public func idealCrossLength(itemCrossLengths: [Double]) -> Double {
+        guard !itemCrossLengths.isEmpty else { return 0 }
+
+        return itemCrossLengths.reduce(0, +) + spacing * Double(itemCrossLengths.count - 1)
+    }
 }
 
 /// Line membership (self-correcting, see `FlowLayout`'s doc) plus
@@ -105,8 +113,28 @@ private final class FlowPositions {
     /// The highest index the sweep has ever reached — extending the sweep
     /// to a new index only ever needs to start here, never from 0.
     private var highestSweptIndex = -1
+    /// Running origin of each line already resolved — truncated from
+    /// whichever line the sweep just rewound to, or whose length changed,
+    /// onward. Mirrors `GridRowLengths`' cache: summing every earlier
+    /// line's length on every call made every walk slower the deeper into
+    /// a long list it reached.
+    private var cachedLineOrigins: [Double] = [0]
+
+    /// The container cross length every line above was packed against — a
+    /// rotation or resize invalidates all of them, since membership depends
+    /// on how much fits.
+    private var lastTotalCross: Double?
 
     private(set) var currentAnchorOrigin: Double = 0
+
+    /// Drops line membership only; measured lengths stay, they're still
+    /// right for a new container width.
+    private func resetLines() {
+        lineMembers = []
+        assignedLine = [:]
+        highestSweptIndex = -1
+        cachedLineOrigins = [0]
+    }
 
     func place(
         index: Int,
@@ -117,7 +145,13 @@ private final class FlowPositions {
         lineSpacing: Double,
         isAnchor: Bool
     ) -> (crossOrigin: Double, mainOrigin: Double) {
+        if lastTotalCross != totalCross {
+            resetLines()
+            lastTotalCross = totalCross
+        }
+
         let crossChanged = lastKnownCrossLength[index] != crossLength
+        let mainChanged = lastKnownMainLength[index] != mainLength
         lastKnownCrossLength[index] = crossLength
         lastKnownMainLength[index] = mainLength
 
@@ -134,7 +168,10 @@ private final class FlowPositions {
             let restartAt = lineMembers[line].first ?? index
             lineMembers.removeLast(lineMembers.count - line)
             for discarded in restartAt...highestSweptIndex { assignedLine[discarded] = nil }
+            invalidateLineOrigins(from: line)
             sweep(from: restartAt, through: highestSweptIndex, totalCross: totalCross, spacing: spacing)
+        } else if mainChanged, let line = assignedLine[index] {
+            invalidateLineOrigins(from: line + 1)
         }
 
         let line = assignedLine[index] ?? 0
@@ -144,15 +181,35 @@ private final class FlowPositions {
             .prefix { $0 < index }
             .reduce(0.0) { $0 + (lastKnownCrossLength[$1] ?? crossLength) + spacing }
 
-        let mainOrigin = (0..<line).reduce(0.0) { total, previousLine in
-            total + lineMainLength(previousLine, fallback: mainLength) + lineSpacing
-        }
+        let mainOrigin = lineOrigin(line, lineSpacing: lineSpacing, fallback: mainLength)
 
         if isAnchor {
             currentAnchorOrigin = mainOrigin
         }
 
         return (crossOrigin, mainOrigin)
+    }
+
+    private func lineOrigin(_ line: Int, lineSpacing: Double, fallback: Double) -> Double {
+        while cachedLineOrigins.count <= line {
+            let previousLine = cachedLineOrigins.count - 1
+            cachedLineOrigins.append(cachedLineOrigins[previousLine] + lineMainLength(previousLine, fallback: fallback) + lineSpacing)
+        }
+
+        return cachedLineOrigins[line]
+    }
+
+    /// `cachedLineOrigins[l]` depends only on lines `0..<l`, so a changed
+    /// line's own cached origin is still valid — only lines after it need
+    /// dropping. Index 0 is never dropped even when a rewind passes `line:
+    /// 0`: it's the structural base case (sum over zero preceding lines is
+    /// always 0), not a cached computation, and `lineOrigin`'s builder loop
+    /// assumes it's always present.
+    private func invalidateLineOrigins(from line: Int) {
+        let keepFrom = max(line, 1)
+        guard keepFrom < cachedLineOrigins.count else { return }
+
+        cachedLineOrigins.removeSubrange(keepFrom...)
     }
 
     /// Extends the greedy sweep across `range`, joining each item onto the

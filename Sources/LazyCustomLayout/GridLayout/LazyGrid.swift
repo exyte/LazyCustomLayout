@@ -13,10 +13,17 @@ import SwiftUI
 ///
 /// The scrolling cases are built on `LazyAnchoredScroll` + `GridLayout`,
 /// so only the window of cells actually on screen is ever instantiated.
-/// Every case shares the same `GridPlacement` auto-placement engine, since
-/// where an item's cell goes never depends on its measured size — only
-/// track *lengths* do, which is why only those need `LazyAnchoredScroll`'s
-/// streaming at all.
+/// Each subview's own stable `.id` (from the `Group(subviews:)` slice of
+/// `content`) is passed through as the item id, so a `gridSpan`/track-count
+/// change that moves a subview to a new cell keeps its `ReusePool` slot and
+/// animates there instead of cross-dissolving. Every case shares the same
+/// `GridPlacement` auto-placement engine, since where an item's cell goes
+/// never depends on its measured size — only track *lengths* do, which is
+/// why only those need `LazyAnchoredScroll`'s streaming at all.
+///
+/// A scrolling case sizes itself along the scroll axis per
+/// `.lazyLayoutSizing(_:)` — hugs content up to the offered space and
+/// scrolls beyond it by default.
 public struct LazyGrid<Content: View>: View {
     var columns: [GridTrack]?
     var rows: [GridTrack]?

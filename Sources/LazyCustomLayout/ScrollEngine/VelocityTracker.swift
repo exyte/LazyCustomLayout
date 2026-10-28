@@ -43,6 +43,13 @@ public struct VelocityTracker {
         samples.removeAll()
     }
 
+    /// Samples currently within `historyDuration`. Below 2, `velocity` can't
+    /// fit a line and reports `0` regardless of how fast the motion actually
+    /// was — callers that have their own velocity estimate (e.g. from the
+    /// platform's own gesture recognizer) should prefer it over a `0` born
+    /// from too little data rather than from genuinely no motion.
+    public var sampleCount: Int { samples.count }
+
     /// The estimated velocity (points/second) at the most recent sample, or
     /// `0` if there isn't enough data yet.
     public var velocity: Double {

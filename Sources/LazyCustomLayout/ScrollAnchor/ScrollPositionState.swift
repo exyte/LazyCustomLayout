@@ -147,13 +147,20 @@ public final class ScrollPositionState<DataSource: AnchorResolverDataSource> {
 
         let previousPosition = spring.position
         spring.step(dt: deltaTime)
-        animationSpring = spring
-
-        applyDelta(spring.position - previousPosition)
 
         if spring.isAtRest {
+            // Land exactly on the target rather than wherever the rest
+            // tolerance happened to leave it — stopping a fraction of a
+            // point short of an exact item boundary would otherwise resolve
+            // to the previous item at a near-maximal offset instead of the
+            // intended one.
+            spring.position = spring.target
             animationSpring = nil
             clock.stop()
+        } else {
+            animationSpring = spring
         }
+
+        applyDelta(spring.position - previousPosition)
     }
 }

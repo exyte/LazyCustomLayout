@@ -87,4 +87,20 @@ struct VelocityTrackerTests {
 
         #expect(tracker.velocity == 0)
     }
+
+    @Test("sampleCount reflects only samples within historyDuration")
+    func sampleCountTracksRetainedSamples() {
+        var tracker = VelocityTracker(historyDuration: 0.1)
+
+        #expect(tracker.sampleCount == 0)
+
+        tracker.addSample(time: 0, position: 0)
+        #expect(tracker.sampleCount == 1)
+
+        tracker.addSample(time: 0.01, position: 10)
+        #expect(tracker.sampleCount == 2)
+
+        tracker.addSample(time: 0.5, position: 1000) // drops the earlier two samples
+        #expect(tracker.sampleCount == 1)
+    }
 }

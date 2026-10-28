@@ -42,15 +42,6 @@ extension ContainerValues {
     @Entry var gridSpan = GridSpan()
 }
 
-extension View {
-    /// Marks this item as covering more than one `LazyGrid` cell — read
-    /// back via `subview.containerValues.gridSpan` by the grid's own
-    /// auto-placement, never by this view itself.
-    public nonisolated func gridSpan(column: Int = 1, row: Int = 1) -> some View {
-        containerValue(\.gridSpan, GridSpan(column: column, row: row))
-    }
-}
-
 /// Resolves every track's pixel origin and length along one axis: each
 /// `.px` track keeps its fixed length; whatever's left of `totalLength`
 /// after every `.px` track and every gap between tracks is subtracted gets

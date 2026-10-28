@@ -9,38 +9,68 @@ import SwiftUI
 /// one to its new slot instead of cross-dissolving a totally different view
 /// tree.
 struct CalculatorExample: View {
+    @Environment(\.verticalSizeClass) var verticalSizeClass
+
     @State private var mode: CalculatorMode = .system
     @State private var model = CalculatorModel()
 
+    private let spacing: CGFloat = 16
+    private let minKeypadHeight: CGFloat = 5 * 44 + 4 * 12
+    private let displayHeightRange: ClosedRange<CGFloat> = 36...76
+
+    private var isCompactHeight: Bool { verticalSizeClass == .compact }
+
     var body: some View {
-        VStack(spacing: 16) {
-            Picker("Mode", selection: $mode.animation(.spring(response: 0.45, dampingFraction: 0.82))) {
-                ForEach(CalculatorMode.allCases, id: \.self) { mode in
-                    Text(mode.title).tag(mode)
+        GeometryReader { proxy in
+            // The keypad has priority: the display only gets what's left
+            // after the keypad's minimum height, shrinking down to its floor.
+            let leftover = proxy.size.height - minKeypadHeight - spacing * 2
+            let displayHeight = min(max(leftover, displayHeightRange.lowerBound), displayHeightRange.upperBound)
+
+            VStack(spacing: spacing) {
+                if !isCompactHeight {
+                    modePicker
+                        .padding(.horizontal)
                 }
+
+                Spacer(minLength: 0)
+
+                Text(model.display)
+                    .font(.system(size: displayHeight * 0.84, weight: .thin))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.3)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .frame(height: displayHeight)
+                    .padding(.horizontal)
+
+                keypad
+                    .padding(.horizontal)
+                    .padding(.bottom)
             }
-            .pickerStyle(.segmented)
-            .tint(.orange)
-            .colorScheme(.dark)
-            .padding(.horizontal)
-
-            Spacer()
-
-            Text(model.display)
-                .font(.system(size: 64, weight: .thin))
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.3)
-                .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.horizontal)
-
-            keypad
-                .padding(.horizontal)
-                .padding(.bottom)
         }
         .background(Color.black)
         .navigationTitle("Calculator")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            if isCompactHeight {
+                ToolbarItem(placement: .principal) {
+                    modePicker
+                        .frame(width: 260)
+                }
+            }
+        }
+    }
+
+    private var modePicker: some View {
+        Picker("Mode", selection: $mode.animation(.spring(response: 0.45, dampingFraction: 0.82))) {
+            ForEach(CalculatorMode.allCases, id: \.self) { mode in
+                Text(mode.title).tag(mode)
+            }
+        }
+        .pickerStyle(.segmented)
+        .tint(.orange)
+        .colorScheme(.dark)
     }
 
     private var keypad: some View {

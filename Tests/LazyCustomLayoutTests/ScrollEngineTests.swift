@@ -138,6 +138,65 @@ struct ScrollEngineTests {
         #expect(!clock.isRunning)
     }
 
+    @Test("a single-sample drag falls back to the caller's velocity instead of flattening to zero")
+    func dragEndedWithOneSampleUsesFallbackVelocity() {
+        let (engine, clock, _, _) = makeEngine()
+
+        // Only one `dragChanged` call this drag — too few for `VelocityTracker`
+        // to fit a line (it needs 2+), which would otherwise report 0 and
+        // silently drop what was actually a fast, sharp flick.
+        engine.dragChanged(delta: 15, time: 0)
+
+        engine.dragEnded(fallbackVelocity: 1500)
+
+        #expect(engine.state == .flinging)
+        #expect(clock.isRunning)
+    }
+
+    @Test("a multi-sample drag ignores the fallback velocity in favor of its own estimate")
+    func dragEndedWithEnoughSamplesIgnoresFallbackVelocity() {
+        let (engine, clock, _, _) = makeEngine()
+
+        // Both samples land within `historyDuration` (0.1s default), so the
+        // tracker retains both and computes its own (slow) velocity instead
+        // of falling back.
+        engine.dragChanged(delta: 0, time: 0)
+        engine.dragChanged(delta: 0.01, time: 0.01) // 1 point/second, far below the rest-velocity threshold
+
+        engine.dragEnded(fallbackVelocity: 1500)
+
+        #expect(engine.state == .idle)
+        #expect(!clock.isRunning)
+    }
+
+    // MARK: Content fits viewport
+
+    @Test("dragging content that already fits the viewport in both directions produces no motion")
+    func dragWithContentFittingViewportProducesNoDeltas() {
+        let (engine, _, delegate, deltas) = makeEngine()
+        delegate.forwardEdgeDistance = 0
+        delegate.backwardEdgeDistance = 0
+
+        engine.dragChanged(delta: 50, time: 0)
+
+        #expect(deltas.value.isEmpty)
+    }
+
+    @Test("ending a fast drag on content that fits the viewport goes straight to idle, not a fling")
+    func dragEndedWithContentFittingViewportSkipsFling() {
+        let (engine, clock, delegate, _) = makeEngine()
+        delegate.forwardEdgeDistance = 0
+        delegate.backwardEdgeDistance = 0
+
+        engine.dragChanged(delta: 0, time: 0)
+        engine.dragChanged(delta: 15, time: 0.01) // 1500 points/second — would normally fling
+
+        engine.dragEnded()
+
+        #expect(engine.state == .idle)
+        #expect(!clock.isRunning)
+    }
+
     // MARK: Touch to stop
 
     @Test("touching down during a fling stops it immediately")

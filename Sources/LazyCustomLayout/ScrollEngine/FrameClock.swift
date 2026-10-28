@@ -49,6 +49,10 @@ public final class FrameClock: NSObject, FrameDriving {
         let timestamp = link.targetTimestamp
         let delta = lastTimestamp.map { timestamp - $0 } ?? (1.0 / 60.0)
 
+        if lastTimestamp != nil {
+            ScrollPerfLog.shared.recordFrame(isHitch: delta > (1.0 / 80.0) * 1.5)
+        }
+
         lastTimestamp = timestamp
         callback?(timestamp, delta)
     }

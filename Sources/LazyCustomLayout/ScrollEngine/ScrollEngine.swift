@@ -69,6 +69,14 @@ public final class ScrollEngine {
 
     private var spring: ScrollPhysics.Spring?
 
+    /// Whether the content had no room to scroll in either direction at the
+    /// start of the current gesture — matches `UIScrollView`'s default of
+    /// not bouncing when content doesn't overflow the viewport. Computed
+    /// once per drag (not per delta) since re-querying both directions'
+    /// slack on every tick would double the delegate's layout-walking cost
+    /// for no benefit: whether content fits doesn't change mid-gesture.
+    private var contentFitsViewport = false
+
     public init(clock: any FrameDriving) {
         self.clock = clock
         clock.callback = { [weak self] _, deltaTime in
@@ -87,6 +95,8 @@ public final class ScrollEngine {
             state = .dragging
             velocityTracker.reset()
             dragCumulativePosition = 0
+            contentFitsViewport = (delegate?.scrollEngine(self, slackInDirection: .forward) ?? .infinity) == 0
+                && (delegate?.scrollEngine(self, slackInDirection: .backward) ?? .infinity) == 0
         }
 
         dragCumulativePosition += delta
@@ -97,10 +107,23 @@ public final class ScrollEngine {
     /// Call when the finger lifts. Transitions to a fling, a spring-back, or
     /// straight to rest, depending on the velocity and whether the content is
     /// currently overscrolled.
-    public func dragEnded() {
+    ///
+    /// `fallbackVelocity` is used whenever `dragChanged` was called too few
+    /// times this drag for `VelocityTracker` to fit a line — a sharp, short
+    /// flick can end before a second `.changed` event ever arrives, in which
+    /// case the tracker reports `0` regardless of how fast the motion really
+    /// was. Pass the platform gesture recognizer's own velocity estimate
+    /// (e.g. `UIPanGestureRecognizer.velocity(in:)`) here so that case still
+    /// flings instead of silently dropping the gesture.
+    public func dragEnded(fallbackVelocity: Double = 0) {
         guard state == .dragging else { return }
 
-        let velocity = velocityTracker.velocity
+        guard !contentFitsViewport else {
+            state = .idle
+            return
+        }
+
+        let velocity = velocityTracker.sampleCount >= 2 ? velocityTracker.velocity : fallbackVelocity
 
         if overscroll != 0 {
             beginSpring(initialVelocity: velocity)
@@ -244,6 +267,8 @@ public final class ScrollEngine {
     }
 
     private func applyFromRest(_ rawDelta: Double) {
+        guard !contentFitsViewport else { return }
+
         let direction: Direction = rawDelta > 0 ? .forward : .backward
         let slack = delegate?.scrollEngine(self, slackInDirection: direction) ?? .infinity
         let cappedSlack = max(slack, 0)

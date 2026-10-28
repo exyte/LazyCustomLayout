@@ -40,7 +40,8 @@ final class SingleContentScrollController: ScrollEngineDelegate {
 
     func dragEnded(_ value: ScrollDragGesture.Value) {
         lastTranslation = 0
-        engine.dragEnded()
+        let velocity = axis == .vertical ? value.velocity.height : value.velocity.width
+        engine.dragEnded(fallbackVelocity: -velocity)
     }
 
     func touchDown() {
