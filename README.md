@@ -81,6 +81,40 @@ LazyFlow(tags, spacing: 6, lineSpacing: 6, estimatedItemLength: 60) { tag in Chi
 - **`.fitToContent`** — eager and non-scrolling: every item is measured and placed in one pass, and the view hugs the full result. Only reach for this with content genuinely small enough to render in full, e.g. a handful of tags in a card — not a feed.
 - **`.scrollFillingSpace`** — always fills whatever space it's offered, scrollable or not. The behavior every lazy layout had before `.lazyLayoutSizing(_:)` existed; reach for this for a full-screen feed.
 
+### Available modifiers
+
+`lazyLayoutSizing` - How a lazy view sizes itself along its scroll axis: `.scroll` (default), `.fitToContent` or `.scrollFillingSpace`, see above. Applies to every `LazySmth` view beneath it    
+`cellReuse` - Whether cells are recycled through a stable pool of SwiftUI identities as the window moves, default is `true`, see below    
+`gridSpan` - Applied to an item inside `LazyGrid`/`LazyDataGrid`: how many columns and rows it covers, default is `1` by `1`, e.g. `.gridSpan(column: 2, row: 1)`    
+`measuringLength` / `measuringSize` - Reports the view's length along an axis (or its full size) whenever it changes. Useful when building your own container on top of the scroll engine
+
+### Cell reuse
+
+Like `UITableView` recycles its cells, `LazyAnchoredScroll` keeps a stable pool of SwiftUI identities and rebinds them to different items as they enter and leave the window. Crossing the buffer boundary during a scroll is then a content *update* to an already-mounted cell instead of an insert/remove — which matters for cells with many subviews, where building and tearing down that many nodes per item is what makes scrolling stutter. Reuse is on by default.
+
+The catch is the same as with `UITableViewCell`: a cell's local `@State` survives being rebound to another item. Derive per-item state from the item itself, or reset it with `.onChange(of:)`:
+
+```swift
+struct Tile: View {
+    var item: Item
+    @State private var isLiked = false
+
+    var body: some View {
+        TileContent(item: item, isLiked: $isLiked)
+            .onChange(of: item.id) { isLiked = false }
+    }
+}
+```
+
+If a cell genuinely needs a fresh `@State` per item, opt out for everything beneath the modifier:
+
+```swift
+LazyGrid(columns: 3, spacing: 12, estimatedRowLength: 130) {
+    ForEach(items) { item in Tile(item) }
+}
+.cellReuse(false)
+```
+
 # The `StreamingLayout` protocol
 
 Shaped like SwiftUI's own `Layout`, propose → measure → place, but asked about **one item at a time** instead of the whole collection — so a custom layout only ever needs to know about a small window around the anchor, never every item.
